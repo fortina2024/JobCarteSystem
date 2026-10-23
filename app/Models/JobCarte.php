@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class JobCarte extends Model
 {
-    
+    use SoftDeletes;
+
     protected $fillable = [
         'num_job_carte',
         'date',
@@ -59,17 +61,13 @@ class JobCarte extends Model
         return $this->HasOne(InfosSupplementaire::class);
     }
 
-    public function cout_prestation()
-    {
-        return $this->HasOne(CoutPrestation::class);
-    }
-
     public function composant_defecteux_remplace()
     {
         return $this->HasMany(ComposantDefecteuxRemplace::class);
     }
 
-    public function user(){
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
@@ -81,5 +79,4 @@ class JobCarte extends Model
             'date' => 'date',
         ];
     }
-    
 }

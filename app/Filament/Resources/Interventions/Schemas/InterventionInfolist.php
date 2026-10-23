@@ -30,9 +30,9 @@ class InterventionInfolist
                     ->boolean(),
                 IconEntry::make('proximite_verifie')
                     ->boolean(),
-                TextEntry::make('temps_debut_gprs_gsm_verifie')
+                TextEntry::make('temps_debut_intervention')
                     ->placeholder('-'),
-                TextEntry::make('temps_fin_gprs_gsm_verifie')
+                TextEntry::make('temps_fin_intervention')
                     ->placeholder('-'),
                 TextEntry::make('duree_test_arret_vehicule_verifie')
                     ->placeholder('-'),

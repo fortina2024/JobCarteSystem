@@ -3,19 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\JobCarte;
-use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class JobCartePdfController extends Controller
 {
     public function generate(JobCarte $record)
     {
+        if ($record->trashed()) {
+            throw new NotFoundHttpException;
+        }
+
         $record->load([
             'client',
             'vehicule',
             'inspection',
             'temps_supplementaire',
-            'cout_prestation',
             'user',
         ]);
 

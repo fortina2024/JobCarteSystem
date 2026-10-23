@@ -24,9 +24,6 @@ return new class extends Migration
             $table->foreignId('user_id')
                 ->constrained('users')
                 ->restrictOnDelete();
-            $table->foreignId('dealer_id')
-                ->constrained('dealers')
-                ->restrictOnDelete();
             $table->string('num_commande')->nullable();
             $table->longText('signature_technicien')->nullable();
             $table->index('client_id');

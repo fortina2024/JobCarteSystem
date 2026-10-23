@@ -27,16 +27,37 @@ class ClientsTable
                     ->sortable(),
                 TextColumn::make('jobCartes')
                     ->label('Nbre Job Cartes')
-                    ->getStateUsing(fn ($record) => $record->jobCartes()->count())
-                    ->sortable(),
+                    ->counts('jobCartes')
+                    ->state(fn ($record): int => (int) $record->job_cartes_count)
+                    ->sortable(query: fn (Builder $query, string $direction) => $query
+                        ->withCount('jobCartes')
+                        ->orderBy('job_cartes_count', $direction)),
                 TextColumn::make('jobCartes_2')
-                    ->label('Signé')
-                    ->getStateUsing(fn ($record) => $record->jobCartes()->count())
-                    ->sortable(),
+                    ->label('Signées')
+                    ->getStateUsing(fn ($record) => $record->jobCartes()
+                        ->where('signature_status', 'signed')
+                        ->count())
+                    ->sortable(query: fn (Builder $query, string $direction) => $query
+                        ->withCount([
+                            'jobCartes as signed_job_cartes_count' => fn (Builder $jobCartes) => $jobCartes
+                                ->where('signature_status', 'signed'),
+                        ])
+                        ->orderBy('signed_job_cartes_count', $direction)),
                 TextColumn::make('jobCartes_3')
-                    ->label('Non signé')
-                    ->getStateUsing(fn ($record) => $record->jobCartes()->count())
-                    ->sortable(),
+                    ->label('Non signées')
+                    ->getStateUsing(fn ($record) => $record->jobCartes()
+                        ->where(fn (Builder $jobCartes) => $jobCartes
+                            ->where('signature_status', '!=', 'signed')
+                            ->orWhereNull('signature_status'))
+                        ->count())
+                    ->sortable(query: fn (Builder $query, string $direction) => $query
+                        ->withCount([
+                            'jobCartes as unsigned_job_cartes_count' => fn (Builder $jobCartes) => $jobCartes
+                                ->where(fn (Builder $jobCartes) => $jobCartes
+                                    ->where('signature_status', '!=', 'signed')
+                                    ->orWhereNull('signature_status')),
+                        ])
+                        ->orderBy('unsigned_job_cartes_count', $direction)),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -57,9 +78,8 @@ class ClientsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    // DeleteBulkAction::make(),
                 ]),
             ]);
     }
-
 }

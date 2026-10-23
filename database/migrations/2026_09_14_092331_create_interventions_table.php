@@ -29,11 +29,11 @@ return new class extends Migration
             $table->boolean('voice_kif_verifie')->default(false);
             $table->boolean('rf_reader_verifie')->default(false);
             $table->boolean('proximite_verifie')->default(false);
-            $table->string('temps_debut_gprs_gsm_verifie')->nullable();
-            $table->string('temps_fin_gprs_gsm_verifie')->nullable();
-            $table->string('duree_test_arret_vehicule_verifie')->nullable();
+            $table->time('temps_debut_gprs_gsm_verifie')->nullable();
+            $table->time('temps_fin_gprs_gsm_verifie')->nullable();
+            $table->time('duree_test_arret_vehicule_verifie')->nullable();
             $table->string('distance_arret_vehicule_verifie')->nullable();
-            $table->string('vitesse_max_fm_terminal_verifie')->nullable();
+            $table->float('vitesse_max_fm_terminal_verifie')->nullable();
             $table->string('rpm_max_fm_terminal_verifie')->nullable();
             $table->string('odo_hrs_moteur_fixe')->nullable();
             $table->string('plage_bande_verte_de')->nullable();

@@ -475,8 +475,8 @@
                             <span style="color:red;">X</span>
                         @endif
                     </td>
-                    <td class="label" style="width:23%; height:14px;">TEMPS DEBUT: {{ $record->intervention?->temps_debut_gprs_gsm_verifie }}</td>
-                    <td class="label" style="width:23%; height:14px;">TEMPS FIN: {{ $record->intervention?->temps_fin_gprs_gsm_verifie }}</td>
+                    <td class="label" style="width:23%; height:14px;">TEMPS DEBUT: {{ $record->intervention?->temps_debut_intervention }}</td>
+                    <td class="label" style="width:23%; height:14px;">TEMPS FIN: {{ $record->intervention?->temps_fin_intervention }}</td>
                 </tr>
                 <tr>
                     <td class="" style="width:23%;">REINSTALLATION</td>
@@ -570,7 +570,7 @@
                             <span style="color:red;">X</span>
                         @endif
                     </td>
-                    <td class="label" colspan="2">TEMPS DEBUT: {{ $record->intervention?->temps_debut_gprs_gsm_verifie }}</td>
+                    <td class="label" colspan="2">TEMPS DEBUT: {{ $record->intervention?->temps_debut_intervention }}</td>
                 </tr>
                 <tr>
                     <td class="" style="width:23%;">VERSION DDR'S CHARGEE:</td>

@@ -13,7 +13,7 @@ class Vehicule extends Model
         'imsi_sim',
         'type_boitier',
         'num_data',
-        'numero_flote',
+        'numero_flotte',
         'marque',
         'num_immobilisation',
         'nom_ref',

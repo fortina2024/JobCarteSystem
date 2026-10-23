@@ -25,6 +25,6 @@ class Site extends Model
 
     public function asset() 
     {
-        return $this->hasOne(Asset::class, 'SiteId', 'subgroup_id');
+        return $this->hasMany(Asset::class, 'SiteId', 'subgroup_id');
     }
 }

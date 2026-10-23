@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Interventions\Schemas;
 
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
@@ -33,9 +33,9 @@ class InterventionForm
                     ->required(),
                 Toggle::make('proximite_verifie')
                     ->required(),
-                TextInput::make('temps_debut_gprs_gsm_verifie')
+                TextInput::make('temps_debut_intervention')
                     ->default(null),
-                TextInput::make('temps_fin_gprs_gsm_verifie')
+                TextInput::make('temps_fin_intervention')
                     ->default(null),
                 TextInput::make('duree_test_arret_vehicule_verifie')
                     ->default(null),

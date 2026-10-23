@@ -16,7 +16,6 @@ use Filament\Schemas\Schema;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Hidden;
 use Illuminate\Support\Facades\DB;
-use Saade\FilamentAutograph\Forms\Components\SignaturePad;
 
 
 class JobCarteForm
@@ -43,7 +42,7 @@ class JobCarteForm
                                     $annee = now()->format('y');
 
                                     $nombre = str_pad(
-                                        \App\Models\JobCarte::count() + 1,
+                                        \App\Models\JobCarte::withTrashed()->count() + 1,
                                         4,
                                         '0',
                                         STR_PAD_LEFT
@@ -55,6 +54,7 @@ class JobCarteForm
                                         'num_job_carte',
                                         "J-{$annee}{$clientCode}{$nombre}"
                                     );
+                                    $set('num_commande', "CMD-J-{$annee}{$clientCode}{$nombre}");
                                 }),
 
                             Hidden::make('site_id')
@@ -71,7 +71,8 @@ class JobCarteForm
 
                             TextInput::make('num_commande')
                                 ->label('N° commande')
-                                ->default(null),
+                                ->readOnly()
+                                ->dehydrated(),
 
                             TextInput::make('user_id')
                                 ->hidden()
@@ -119,7 +120,8 @@ class JobCarteForm
                                             ->afterStateUpdated(function ($state, callable $set) {
                                                 if (! $state) {
                                                     $set('vehicule.imsi_sim', null);
-                                                    $set('vehicule.numero_data', null);
+                                                    $set('vehicule.num_data', null);
+                                                    $set('vehicule.marque', null);
                                                     $set('vehicule.type_boitier', null);
                                                     $set('vehicule.num_immobilisation', null);
                                                     $set('site_id', null);
@@ -135,7 +137,8 @@ class JobCarteForm
                                                 $site = \App\Models\Site::where('subgroup_id', $asset->SiteId)->first();
                                                 
                                                 $set('vehicule.imsi_sim', $asset->FmVehicleId);
-                                                $set('vehicule.numero_data', $asset->Description);
+                                                $set('vehicule.num_data', $asset->Description);
+                                                $set('vehicule.marque', $asset->Make);
                                                 $set('vehicule.type_boitier', $asset->FleetNumber);
                                                 $set('vehicule.num_immobilisation', $asset->RegistrationNumber);
                                                 $set('site_id', $site?->id);
@@ -144,35 +147,37 @@ class JobCarteForm
                                             ->preload()
                                             ->required(),
 
+                                        TextInput::make('vehicule.marque')
+                                            ->label('Marque'),
+                                        TextInput::make('vehicule.num_flotte')
+                                            ->label('N° Flotte'),   
+                                        TextInput::make('vehicule.immatriculation')
+                                            ->label('N° Maricule'),
+                                        TextInput::make('vehicule.num_immobilisation')
+                                            ->label('Immobilisation'),
+                                        TextInput::make('vehicule.num_chassis')
+                                            ->label('N° Chassis'), 
+                                        TextInput::make('vehicule.num_serie')
+                                            ->label('N° Série'),
+
                                         TextInput::make('vehicule.imsi_sim')
                                             ->label('N° IMSI SIM'),
 
-                                        TextInput::make('vehicule.numero_data')
+                                        TextInput::make('vehicule.num_data')
                                             ->label('N° Data'),
 
                                         TextInput::make('vehicule.type_boitier')
                                             ->label('Type boîtier'),
 
-                                        TextInput::make('vehicule.num_immobilisation')
-                                            ->label('Immobilisation'),
-
-                                        TextInput::make('vehicule.num_serie')
-                                            ->label('N° Série'),
-                                        TextInput::make('vehicule.num_flotte')
-                                            ->label('N° Flotte'),  
-                                        TextInput::make('vehicule.num_chassis')
-                                            ->label('N° Chassis'),  
-                                        TextInput::make('vehicule.immatriculation')
-                                            ->label('N° Maricule'),
                                         TextInput::make('vehicule.nom_ref')
                                             ->label('Nom Réf'),
                                         TextInput::make('vehicule.num_ref')
                                             ->label('N° Ref'),
                                         TextInput::make('vehicule.num_voix')
                                             ->label('N° Voix'),
-                                        TextInput::make('vehicule.date_mise_en_disposition')
+                                        DatePicker::make('vehicule.date_mise_en_disposition')
                                             ->label('Date mise a disposition'),
-                                        TextInput::make('vehicule.heure_mise_en_disposition')
+                                        TimePicker::make('vehicule.heure_mise_en_disposition')
                                             ->label('Heure mise_en_disposition'),
                                         Grid::make(2)
                                             ->schema([
@@ -196,41 +201,41 @@ class JobCarteForm
                                                         Placeholder::make('_________________')
                                                             ->label('')
                                                             ->columnSpan(6),
-                                                        Placeholder::make('peinture_etat_ext')
+                                                        Placeholder::make('_________________')
                                                             ->label('Avant')
                                                             ->columnSpan(3),
-                                                        Placeholder::make('peinture_etat_ext')
+                                                        Placeholder::make('_________________')
                                                             ->label('Après')
                                                             ->columnSpan(3),
                                                      ]),
                                                 Grid::make(12)
                                                     ->schema([
-                                                        Placeholder::make('peinture_etat_ext')
+                                                        Placeholder::make('_________________')
                                                             ->label('Peinture / Etat exterieur')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('peinture_etat_ext_avant')
-                                                            ->label(fn ($get) => $get('peinture_etat_ext_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.peinture_etat_ext_avant')
+                                                            ->label(fn ($get) => $get('inspection.peinture_etat_ext_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('peinture_etat_ext_apres')
-                                                            ->label(fn ($get) => $get('peinture_etat_ext_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.peinture_etat_ext_apres')
+                                                            ->label(fn ($get) => $get('inspection.peinture_etat_ext_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
                                                     ]),
                                                 Grid::make(12)
                                                     ->schema([
-                                                        Placeholder::make('panneaux_inter')
+                                                        Placeholder::make('_________________')
                                                             ->label('Panneaux interieurs (Tableau)')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('panneaux_inter_avant')
-                                                            ->label(fn ($get) => $get('panneaux_inter_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.panneaux_inter_avant')
+                                                            ->label(fn ($get) => $get('inspection.panneaux_inter_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('panneaux_inter_apres')
-                                                            ->label(fn ($get) => $get('panneaux_inter_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.panneaux_inter_apres')
+                                                            ->label(fn ($get) => $get('inspection.panneaux_inter_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
@@ -240,13 +245,13 @@ class JobCarteForm
                                                         Placeholder::make('demarrage_vehicule')
                                                             ->label('Demarrage véhicule')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('demarrage_vehicule_avant')
-                                                            ->label(fn ($get) => $get('demarrage_vehicule_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.demarrage_vehicule_avant')
+                                                            ->label(fn ($get) => $get('inspection.demarrage_vehicule_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('demarrage_vehicule_apres')
-                                                            ->label(fn ($get) => $get('demarrage_vehicule_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.demarrage_vehicule_apres')
+                                                            ->label(fn ($get) => $get('inspection.demarrage_vehicule_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
@@ -256,13 +261,13 @@ class JobCarteForm
                                                         Placeholder::make('instruments')
                                                             ->label('Instruments')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('instruments_avant')
-                                                            ->label(fn ($get) => $get('instruments_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.instruments_avant')
+                                                            ->label(fn ($get) => $get('inspection.instruments_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('instruments_apres')
-                                                            ->label(fn ($get) => $get('instruments_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.instruments_apres')
+                                                            ->label(fn ($get) => $get('inspection.instruments_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
@@ -272,13 +277,13 @@ class JobCarteForm
                                                         Placeholder::make('radio')
                                                             ->label('Radio')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('radio_avant')
-                                                            ->label(fn ($get) => $get('radio_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.radio_avant')
+                                                            ->label(fn ($get) => $get('inspection.radio_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('radio_apres')
-                                                            ->label(fn ($get) => $get('radio_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.radio_apres')
+                                                            ->label(fn ($get) => $get('inspection.radio_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
@@ -292,73 +297,73 @@ class JobCarteForm
                                                         Placeholder::make('_________________')
                                                             ->label('')
                                                             ->columnSpan(6),
-                                                        Placeholder::make('peinture_etat_ext')
+                                                        Placeholder::make('_________________')
                                                             ->label('Avant')
                                                             ->columnSpan(3),
-                                                        Placeholder::make('peinture_etat_ext')
+                                                        Placeholder::make('_________________')
                                                             ->label('Après')
                                                             ->columnSpan(3),
                                                      ]),
                                                 Grid::make(12)
                                                     ->schema([
-                                                        Placeholder::make('affichage_code_defaut_tab')
+                                                        Placeholder::make('_________________')
                                                             ->label('Affichage codes defaut au tableau.')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('affichage_code_defaut_tab_avant')
-                                                            ->label(fn ($get) => $get('affichage_code_defaut_tab_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.affichage_code_defaut_tab_avant')
+                                                            ->label(fn ($get) => $get('inspection.affichage_code_defaut_tab_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('affichage_code_defaut_tab_apres')
-                                                            ->label(fn ($get) => $get('affichage_code_defaut_tab_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.affichage_code_defaut_tab_apres')
+                                                            ->label(fn ($get) => $get('inspection.affichage_code_defaut_tab_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
                                                     ]),
                                                 Grid::make(12)
                                                     ->schema([
-                                                        Placeholder::make('eclairage_ext')
+                                                        Placeholder::make('_________________')
                                                             ->label('Eclairage exterieur')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('eclairage_ext_avant')
-                                                            ->label(fn ($get) => $get('eclairage_ext_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.eclairage_ext_avant')
+                                                            ->label(fn ($get) => $get('inspection.eclairage_ext_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('eclairage_ext_apres')
-                                                            ->label(fn ($get) => $get('eclairage_ext_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.eclairage_ext_apres')
+                                                            ->label(fn ($get) => $get('inspection.eclairage_ext_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
                                                     ]),
                                                 Grid::make(12)
                                                     ->schema([
-                                                        Placeholder::make('feux')
+                                                        Placeholder::make('_________________')
                                                             ->label('Feux (Avant / arrière)')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('feux_avant')
-                                                            ->label(fn ($get) => $get('feux_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.feux_avant')
+                                                            ->label(fn ($get) => $get('inspection.feux_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('feux_apres')
-                                                            ->label(fn ($get) => $get('feux_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.feux_apres')
+                                                            ->label(fn ($get) => $get('inspection.feux_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
                                                     ]),
                                                 Grid::make(12)
                                                     ->schema([
-                                                        Placeholder::make('detresse')
+                                                        Placeholder::make('_________________')
                                                             ->label('Detresse')
                                                             ->columnSpan(6),
-                                                        Checkbox::make('detresse_avant')
-                                                            ->label(fn ($get) => $get('detresse_avant') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.detresse_avant')
+                                                            ->label(fn ($get) => $get('inspection.detresse_avant') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
-                                                        Checkbox::make('detresse_apres')
-                                                            ->label(fn ($get) => $get('detresse_apres') ? 'Bon' : 'Mauvais')
+                                                        Checkbox::make('inspection.detresse_apres')
+                                                            ->label(fn ($get) => $get('inspection.detresse_apres') ? 'Bon' : 'Mauvais')
                                                             ->default(true)
                                                             ->live()
                                                             ->columnSpan(3),
@@ -366,15 +371,7 @@ class JobCarteForm
                                             ]),
                                     ]),
                             ]),
-                            Grid::make(1)
-                                ->schema([
-                                    Textarea::make('autre_commentaire')
-                                        ->label('Autres commentaires')
-                                        ->rows(5)
-                                        ->cols(12)
-                                        ->maxLength(200)
-                                        ->helperText('Maximum 500 caractères.'),
-                                    ]),
+
                         Step::make('DETAILS DE L\'INTERVENTION')
                             ->schema([
                                 Grid::make(12)
@@ -382,34 +379,34 @@ class JobCarteForm
                                         Section::make('')
                                             ->columnSpan(3)
                                             ->schema([
-                                                Checkbox::make('nouv_installation')
+                                                Checkbox::make('intervention.nouv_installation')
                                                     ->label('Nouvelle installation'),
-                                                Checkbox::make('reinstallation')
+                                                Checkbox::make('intervention.reinstallation')
                                                     ->label('Réinstallation'),
-                                                Checkbox::make('maintenance')
+                                                Checkbox::make('intervention.maintenance')
                                                     ->label('Maintenance'),
-                                                Checkbox::make('panne')
+                                                Checkbox::make('intervention.panne')
                                                     ->label('Panne'),                                                    
-                                                Checkbox::make('desinstallation')
+                                                Checkbox::make('intervention.desinstallation')
                                                     ->label('Désinstallation'),
-                                                TextInput::make('version_dors_chargee')
+                                                TextInput::make('intervention.version_dors_chargee')
                                                     ->label('Version DDR\'s chargée'),  
                                             ]),
 
                                         Section::make('')
                                             ->columnSpan(3)
                                             ->schema([
-                                                Checkbox::make('gprs_gsm_verifie')
+                                                Checkbox::make('intervention.gprs_gsm_verifie')
                                                 ->label('GPS/GSM vérifié'),
-                                                Checkbox::make('arret_vehicule_verifie')
+                                                Checkbox::make('intervention.arret_vehicule_verifie')
                                                 ->label('Arrêt véhicule vérifié'),
-                                                Checkbox::make('fm_terminal_verifie')
+                                                Checkbox::make('intervention.fm_terminal_verifie')
                                                 ->label('FM terminal vérifié'),
-                                                Checkbox::make('voice_kif_verifie')
+                                                Checkbox::make('intervention.voice_kif_verifie')
                                                 ->label('Voice Kit vérifié'),
-                                                Checkbox::make('rf_reader_verifie')
+                                                Checkbox::make('intervention.rf_reader_verifie')
                                                 ->label('RF reader vérifié'),
-                                                Checkbox::make('proximite_verifie')
+                                                Checkbox::make('intervention.proximite_verifie')
                                                 ->label('Proximité vérifiée'),
                                             ]),
 
@@ -418,58 +415,58 @@ class JobCarteForm
                                             ->schema([
                                                 Grid::make(2)
                                                     ->schema([
-                                                        TimePicker::make('temps_debut')
+                                                        TimePicker::make('intervention.temps_debut_intervention')
                                                             ->label('Temps debut')
                                                             ->inlineLabel(),
-                                                        TimePicker::make('temps_fin')
+                                                        TimePicker::make('intervention.temps_fin_intervention')
                                                             ->label('Temps fin')
                                                             ->inlineLabel(),
                                                      ]),
                                                 Grid::make(2)
                                                     ->schema([
-                                                        TimePicker::make('duree_test')
+                                                        TimePicker::make('intervention.duree_test_arret_vehicule_verifie')
                                                             ->label('Durée test')
                                                             ->inlineLabel(),
-                                                        TextInput::make('distance_test')
+                                                        TextInput::make('intervention.distance_arret_vehicule_verifie')
                                                             ->label('Distance test')
                                                             ->inlineLabel(),
                                                      ]), 
 
-                                                TextInput::make('odo_hrs_moteur_fixe')
+                                                TextInput::make('intervention.odo_hrs_moteur_fixe')
                                                     ->label('ODO/Hrs moteur fixe à ')
                                                     ->inlineLabel(),
                                                 Grid::make(12)
                                                     ->schema([
-                                                        TextInput::make('plage_bande_verte_de')
+                                                        TextInput::make('intervention.plage_bande_verte_de')
                                                             ->label('Plage bande verte de')
                                                             ->inlineLabel()
                                                             ->columnSpan(8),
-                                                        TextInput::make('plage_bande_verte_a')
+                                                        TextInput::make('intervention.plage_bande_verte_a')
                                                             ->label('à')
                                                             ->inlineLabel()
                                                             ->columnSpan(4),
                                                      ]),   
-                                                TextInput::make('sur_regime')
+                                                TextInput::make('intervention.sur_regime')
                                                     ->label('Sur regime')
                                                     ->inlineLabel(),                                              
                                             ]),
                                     ]),
                                     Grid::make(12)
                                         ->schema([
-                                            TextInput::make('calibration_vitesse')
+                                            TextInput::make('intervention.calibration_vitesse')
                                                 ->label('Calibration vitese :')
                                                 ->inlineLabel()
                                                 ->columnSpan(4),
-                                            Checkbox::make('par_distance_fixe')
+                                            Checkbox::make('intervention.par_distance_fixe')
                                                 ->label('Par distance fixe')
                                                 ->columnSpan(2),
-                                            Checkbox::make('par_tableau')
+                                            Checkbox::make('intervention.par_tableau')
                                                 ->label('Par tableau')
                                                 ->columnSpan(2),
-                                            Checkbox::make('vitesse_gps')
+                                            Checkbox::make('intervention.vitesse_gps')
                                                 ->label('Vitesse GPS')
                                                 ->columnSpan(2), 
-                                            Checkbox::make('can')
+                                            Checkbox::make('intervention.can')
                                                 ->label('Can')
                                                  ->columnSpan(2), 
                                         ])->columnSpanFull(), 
@@ -478,15 +475,15 @@ class JobCarteForm
                                             ->schema([
                                                 Section::make('Informations supplémentaires')
                                                     ->schema([
-                                                        TimePicker::make('debut_heure_suppl')
+                                                        TimePicker::make('temps_supplementaire.debut_heure_suppl')
                                                             ->live()
                                                             ->inlineLabel(),
 
-                                                        TimePicker::make('fin_heure_suppl')
+                                                        TimePicker::make('temps_supplementaire.fin_heure_suppl')
                                                             ->live()
                                                             ->inlineLabel(),
 
-                                                        Placeholder::make('total_heure_suppl')
+                                                        Placeholder::make('temps_supplementaire.total_heure_suppl')
                                                             ->label('Total Hrs suppl.')
                                                             ->content(function ($get) {
                                                                 $debut = $get('debut_heure_suppl');
@@ -502,18 +499,18 @@ class JobCarteForm
                                                             })
                                                             ->inlineLabel(),
 
-                                                        TimePicker::make('temps_attente_pour')
+                                                        TimePicker::make('temps_supplementaire.temps_attente_pour')
                                                             ->live()
                                                             ->inlineLabel(),
 
-                                                        TimePicker::make('debut_attente')
+                                                        TimePicker::make('temps_supplementaire.debut_attente')
                                                             ->live()
                                                             ->inlineLabel(),
 
-                                                        TimePicker::make('fin_attente')
+                                                        TimePicker::make('temps_supplementaire.fin_attente')
                                                             ->live()
                                                             ->inlineLabel(),
-                                                        Textarea::make('observation')
+                                                        Textarea::make('temps_supplementaire.observation')
                                                             ->label('Observation')
                                                             ->columnSpanFull()
                                                             ->rows(6),
@@ -524,34 +521,34 @@ class JobCarteForm
                                             Section::make('')
                                                 ->schema([
 
-                                                    TextInput::make('ancien_num_serie_sim')
+                                                    TextInput::make('temps_supplementaire.ancien_num_serie_sim')
                                                         ->label('Ancien N° série SIM'),
 
-                                                    TextInput::make('nouveau_num_serie_sim')
+                                                    TextInput::make('temps_supplementaire.nouveau_num_serie_sim')
                                                         ->label('Nouveau N° série SIM'),
 
-                                                    TextInput::make('ancien_num_serie_boitier_fm')
+                                                    TextInput::make('temps_supplementaire.ancien_num_serie_boitier_fm')
                                                         ->label('Ancien N° série boîtier FM'),
 
-                                                    TextInput::make('nouveau_num_serie_boitier_fm')
+                                                    TextInput::make('temps_supplementaire.nouveau_num_serie_boitier_fm')
                                                         ->label('Nouveau N° série boîtier FM'),
 
-                                                    TextInput::make('ancien_num_serie_fm_terminal')
+                                                    TextInput::make('temps_supplementaire.ancien_num_serie_fm_terminal')
                                                         ->label('Ancien N° série FM Terminal'),
 
-                                                    TextInput::make('nouveau_num_serie_fm_terminal')
+                                                    TextInput::make('temps_supplementaire.nouveau_num_serie_fm_terminal')
                                                         ->label('Nouveau N° série FM Terminal'),
 
-                                                    TextInput::make('ancien_num_serie_boitier_voice_kit')
+                                                    TextInput::make('temps_supplementaire.ancien_num_serie_boitier_voice_kit')
                                                         ->label('Ancien N° série boîtier Voice Kit'),
 
-                                                    TextInput::make('nouveau_num_serie_boitier_voice_kit')
+                                                    TextInput::make('temps_supplementaire.nouveau_num_serie_boitier_voice_kit')
                                                         ->label('Nouveau N° série boîtier Voice Kit'),
 
-                                                    TextInput::make('ancien_num_serie_boitier_rf_tag_id')
+                                                    TextInput::make('temps_supplementaire.ancien_num_serie_boitier_rf_tag_id')
                                                         ->label('Ancien N° série boîtier RF Tag ID'),
 
-                                                    TextInput::make('nouveau_num_serie_boitier_rf_tag_id')
+                                                    TextInput::make('temps_supplementaire.nouveau_num_serie_boitier_rf_tag_id')
                                                         ->label('Nouveau N° série boîtier RF Tag ID'),
                                                 ])
                                                 ->columns(2),

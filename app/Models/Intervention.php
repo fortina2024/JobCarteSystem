@@ -21,8 +21,8 @@ class Intervention extends Model
         'voice_kif_verifie',
         'rf_reader_verifie',
         'proximite_verifie',
-        'temps_debut_gprs_gsm_verifie',
-        'temps_fin_gprs_gsm_verifie',
+        'temps_debut_intervention',
+        'temps_fin_intervention',
         'duree_test_arret_vehicule_verifie',
         'distance_arret_vehicule_verifie',
         'vitesse_max_fm_terminal_verifie',
@@ -57,5 +57,4 @@ class Intervention extends Model
     {
         return $this->belongsTo(JobCarte::class);
     }
-
 }

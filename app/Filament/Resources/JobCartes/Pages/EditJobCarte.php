@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\JobCartes\Pages;
 
 use App\Filament\Resources\JobCartes\JobCarteResource;
-use Filament\Actions\DeleteAction;
+use Filament\Actions\Action;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,9 +16,9 @@ class EditJobCarte extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
         ];
     }
+
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $record = $this->record->load([
@@ -27,18 +28,42 @@ class EditJobCarte extends EditRecord
             'temps_supplementaire',
         ]);
 
-        // Vehicule
-        $data = array_merge($data, $record->vehicule?->toArray() ?? []);
-
-        // Inspection
-        $data = array_merge($data, $record->inspection?->toArray() ?? []);
-
-        // Intervention
-        $data = array_merge($data, $record->intervention?->toArray() ?? []);
-
-        // Infos supplementaire
-        $data = array_merge($data, $record->temps_supplementaire?->toArray() ?? []);
+        $data['vehicule'] = $record->vehicule?->getAttributes() ?? [];
+        $data['inspection'] = $record->inspection?->getAttributes() ?? [];
+        $data['intervention'] = $record->intervention?->getAttributes() ?? [];
+        $data['temps_supplementaire'] = $record->temps_supplementaire?->getAttributes() ?? [];
 
         return $data;
+    }
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $relatedData = [
+            'intervention' => 'intervention',
+            'temps_supplementaire' => 'temps_supplementaire',
+        ];
+
+        foreach ($relatedData as $stateKey => $relationName) {
+            $relationData = $data[$stateKey] ?? [];
+            unset($data[$stateKey]);
+
+            if ($relationData !== []) {
+                $record->{$relationName}()->updateOrCreate([], $relationData);
+            }
+        }
+
+        $record->update($data);
+
+        return $record;
+    }
+
+    protected function getSaveFormAction(): Action
+    {
+        return parent::getSaveFormAction()
+            ->requiresConfirmation()
+            ->modalHeading('Confirmer la modification')
+            ->modalDescription('Voulez-vous vraiment enregistrer les modifications de cette Job Carte ?')
+            ->modalSubmitActionLabel('Oui, modifier')
+            ->modalCancelActionLabel('Annuler');
     }
 }

@@ -16,12 +16,24 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class JobCarteResource extends Resource
 {
     protected static ?string $model = JobCarte::class;
 
-    protected static string|BackedEnum|null $navigationIcon = null; //Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null; // Heroicon::OutlinedRectangleStack;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (! (auth()->user()?->hasRole('super_admin') ?? false)) {
+            $query->withoutTrashed();
+        }
+
+        return $query;
+    }
 
     public static function form(Schema $schema): Schema
     {

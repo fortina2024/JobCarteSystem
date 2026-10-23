@@ -3,19 +3,21 @@
 namespace App\Filament\Resources\JobCartes\Tables;
 
 use App\Filament\Resources\JobCartes\JobCarteResource;
+use App\Mail\JobCarteDeletedMail;
+use App\Mail\JobCarteSignatureMail;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use App\Filament\Resources\JobCarteResource\Pages;
-use App\Mail\JobCarteSignatureMail;
+use Filament\Actions\RestoreAction;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TrashedFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Throwable;
 
 class JobCartesTable
 {
@@ -39,8 +41,12 @@ class JobCartesTable
                     ->label('ID Véhicule')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('site.asset.Description')
+                /*TextColumn::make('site.asset.Description')
                     ->label('Description')
+                    ->searchable()
+                    ->sortable(),*/
+                TextColumn::make('client.nom')
+                    ->label('Client')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('signature_status')
@@ -58,14 +64,6 @@ class JobCartesTable
                         'expired' => 'danger',
                         default => 'gray',
                     }),
-                TextColumn::make('client.nom')
-                    ->label('Client')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('site.nom')
-                    ->label('Site d\'intervention')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('user.name')
                     ->label('Technicien')
                     ->searchable()
@@ -78,34 +76,113 @@ class JobCartesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('deleted_at')
+                    ->label('Archivée le')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(function ($query): void {
+                if (! (auth()->user()?->hasRole('super_admin') ?? false)) {
+                    $query->withoutTrashed();
+                }
+            })
             ->filters([
-                //
+                TrashedFilter::make()
+                    ->visible(fn (): bool => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->recordActions([
                 ActionGroup::make([
-                    ViewAction::make(),
-                    EditAction::make(),
+                    RestoreAction::make()
+                        ->visible(fn ($record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()),
 
+                    EditAction::make()
+                        ->color('warning')
+                        ->visible(fn ($record): bool => ! $record->trashed() && $record->signature_status !== 'signed'),
                     Action::make('afficher')
                         ->label('Afficher')
                         ->icon('heroicon-o-eye')
-                        ->color('primary')
+                        ->color('info')
+                        ->visible(fn ($record): bool => ! $record->trashed())
                         ->url(fn ($record) => JobCarteResource::getUrl('fiche', [
-                            'record' => $record,
+                            'record' => $record->getKey(),
                         ])),
 
                     Action::make('pdf')
                         ->label('PDF')
                         ->icon('heroicon-o-document-arrow-down')
-                        ->color('primary')
+                        ->color('gray')
+                        ->visible(fn ($record): bool => ! $record->trashed())
                         ->url(fn ($record) => route('job-cartes.pdf', $record))
                         ->openUrlInNewTab(),
-                    
+                        
+                    Action::make('supprimer')
+                        ->label('Supprimer')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Archiver la Job Carte')
+                        ->modalDescription(fn ($record): string => $record->signature_status === 'signed'
+                            ? 'Cette Job Carte est signée. Un courriel sera envoyé au client avant son archivage.'
+                            : 'Cette Job Carte sera archivée. Son historique et ses données associées seront conservés.')
+                        ->visible(fn ($record): bool => ! $record->trashed() && (auth()->user()?->hasRole('super_admin') ?? false))
+                        ->action(function ($record): void {
+                            abort_unless(auth()->user()?->hasRole('super_admin'), 403);
+
+                            if ($record->signature_status === 'signed') {
+                                $client = $record->client;
+
+                                if (! $client?->email) {
+                                    Notification::make()
+                                        ->title('Archivage impossible')
+                                        ->body('Le client n’a pas d’adresse e-mail. La Job Carte n’a pas été archivée.')
+                                        ->danger()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                try {
+                                    Mail::to($client->email)->send(new JobCarteDeletedMail($record));
+                                } catch (Throwable $exception) {
+                                    Log::error('Impossible de notifier le client avant archivage de la Job Carte.', [
+                                        'job_carte_id' => $record->id,
+                                        'recipient' => $client->email,
+                                        'exception' => $exception->getMessage(),
+                                    ]);
+
+                                    Notification::make()
+                                        ->title('Archivage impossible')
+                                        ->body('Le courriel au client n’a pas pu être envoyé. La Job Carte n’a pas été archivée.')
+                                        ->danger()
+                                        ->send();
+
+                                    return;
+                                }
+                            }
+
+                            DB::transaction(function () use ($record): void {
+                                $record->forceFill([
+                                    'signature_token' => null,
+                                    'signature_token_expires_at' => now(),
+                                ])->save();
+                                $record->delete();
+                            });
+
+                            Notification::make()
+                                ->title('Job Carte archivée')
+                                ->body($record->signature_status === 'signed'
+                                    ? 'Le client a été notifié et l’historique a été conservé.'
+                                    : 'L’historique de la Job Carte a été conservé.')
+                                ->success()
+                                ->send();
+                        }),
+
                     Action::make('envoyer_signature')
                         ->label('Email pour signature')
-                        ->color('primary')
+                        ->color('success')
                         ->icon('heroicon-o-envelope')
+                        ->visible(fn ($record): bool => ! $record->trashed())
                         ->requiresConfirmation()
                         ->modalHeading("Confirmation d'envoi email pour signature")
                         ->modalDescription(fn ($record) => "Êtes-vous sûr de vouloir d'envoyer ce mail à {$record->client->nom} ?")
@@ -115,13 +192,13 @@ class JobCartesTable
 
                                 $client = $record->client;
 
-                                if (!$client) {
+                                if (! $client) {
                                     throw new \Exception('Aucun client associé à ce Job Carte.');
                                 }
 
-                                if (!$client->email) {
+                                if (! $client->email) {
                                     throw new \Exception(
-                                        'Le client ' . $client->nom . ' ne possède pas d’adresse email.'
+                                        'Le client '.$client->nom.' ne possède pas d’adresse email.'
                                     );
                                 }
 
@@ -136,7 +213,7 @@ class JobCartesTable
                                 $link = route('job-carte.signature', [
                                     'token' => $token,
                                 ]);
-                                
+
                                 Mail::to($client->email)
                                     ->send(new JobCarteSignatureMail(
                                         $record,
@@ -159,11 +236,6 @@ class JobCartesTable
 
                             }
                         }),
-                ]),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

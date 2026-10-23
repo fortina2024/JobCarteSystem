@@ -36,9 +36,9 @@ class InterventionsTable
                     ->boolean(),
                 IconColumn::make('proximite_verifie')
                     ->boolean(),
-                TextColumn::make('temps_debut_gprs_gsm_verifie')
+                TextColumn::make('temps_debut_intervention')
                     ->searchable(),
-                TextColumn::make('temps_fin_gprs_gsm_verifie')
+                TextColumn::make('temps_fin_intervention')
                     ->searchable(),
                 TextColumn::make('duree_test_arret_vehicule_verifie')
                     ->searchable(),

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\JobCarte;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class JobCartePolicy
 {
     use HandlesAuthorization;
-    
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:JobCarte');
@@ -34,32 +34,32 @@ class JobCartePolicy
 
     public function delete(AuthUser $authUser, JobCarte $jobCarte): bool
     {
-        return $authUser->can('Delete:JobCarte');
+        return $authUser->hasRole('super_admin');
     }
 
     public function deleteAny(AuthUser $authUser): bool
     {
-        return $authUser->can('DeleteAny:JobCarte');
+        return $authUser->hasRole('super_admin');
     }
 
     public function restore(AuthUser $authUser, JobCarte $jobCarte): bool
     {
-        return $authUser->can('Restore:JobCarte');
+        return $authUser->hasRole('super_admin');
     }
 
     public function forceDelete(AuthUser $authUser, JobCarte $jobCarte): bool
     {
-        return $authUser->can('ForceDelete:JobCarte');
+        return $authUser->hasRole('super_admin');
     }
 
     public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $authUser->can('ForceDeleteAny:JobCarte');
+        return $authUser->hasRole('super_admin');
     }
 
     public function restoreAny(AuthUser $authUser): bool
     {
-        return $authUser->can('RestoreAny:JobCarte');
+        return $authUser->hasRole('super_admin');
     }
 
     public function replicate(AuthUser $authUser, JobCarte $jobCarte): bool
@@ -71,5 +71,4 @@ class JobCartePolicy
     {
         return $authUser->can('Reorder:JobCarte');
     }
-
 }

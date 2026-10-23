@@ -24,6 +24,13 @@ class UsersTable
                     ->searchable(),
                 TextColumn::make('code')
                     ->searchable(),
+                TextColumn::make('job_cartes_count')
+                    ->label('Nbre Job cartes')
+                    ->counts('job_cartes')
+                    ->state(fn ($record): int => (int) $record->job_cartes_count)
+                    ->sortable(query: fn ($query, string $direction) => $query
+                        ->withCount('job_cartes')
+                        ->orderBy('job_cartes_count', $direction)),
                 TextColumn::make('roles.name')
                     ->label('Rôle')
                     ->badge()
